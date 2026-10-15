@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NodeMCU (ESP8266) in a Nutshell</title>
+<style>
+:root{--bg:#f6f8fb;--card:#fff;--ink:#1c2733;--mut:#5a6b7b;--acc:#0b6bcb;--ok:#1a7f37;--bad:#c62828;--warn:#b26a00;--line:#d7dee6}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+header{background:linear-gradient(135deg,#0b3d75,#0b6bcb);color:#fff;padding:28px 18px}
+header h1{margin:0 0 6px;font-size:1.8rem}header p{margin:4px 0;opacity:.95}
+nav{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);z-index:5;display:flex;flex-wrap:wrap;gap:4px;padding:6px 10px}
+nav a{color:var(--acc);text-decoration:none;padding:4px 9px;border-radius:14px;font-size:.88rem}nav a:hover{background:#e8f1fb}
+main{max-width:980px;margin:auto;padding:12px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin:14px 0}
+h2{margin-top:0;color:#0b3d75;border-bottom:2px solid #e3ebf4;padding-bottom:5px}h3{color:#0b6bcb;margin-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:8px 0;font-size:.92rem}th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:#eaf2fb}
+.tw{overflow-x:auto}.key{background:#fff8e1;border-left:4px solid #f4b400;padding:8px 12px;margin:10px 0}
+.eq{background:#f0f5fa;border-left:4px solid var(--acc);padding:8px 12px;margin:8px 0;font-family:Cambria,'Times New Roman',serif;font-size:1.05rem;overflow-x:auto}
+.sol{background:#f7fbf7;border:1px solid #cfe5d2;border-radius:8px;padding:10px 14px;margin:10px 0}
+svg{max-width:100%;height:auto;background:#fff;border:1px solid var(--line);border-radius:8px}
+figcaption{font-size:.85rem;color:var(--mut);margin-bottom:8px}
+details{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:7px 0;background:#fbfcfe}summary{cursor:pointer;font-weight:600}
+.q{border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin:10px 0}.q label{display:block;padding:3px 0;cursor:pointer}
+.q.correct{border-color:var(--ok);background:#f1faf3}.q.wrong{border-color:var(--bad);background:#fdf3f3}.q.un{border-color:var(--warn);background:#fff8ec}
+.ex{display:none;margin-top:6px;font-size:.92rem}.q.show .ex{display:block}
+.tag{font-size:.72rem;padding:1px 8px;border-radius:10px;color:#fff;margin-left:6px}.Easy{background:#1a7f37}.Moderate{background:#b26a00}.Difficult{background:#c62828}
+button{background:var(--acc);color:#fff;border:0;padding:8px 16px;border-radius:6px;cursor:pointer;margin:4px 6px 4px 0;font-size:.92rem}button.s{background:#5a6b7b}
+.res{font-weight:700;margin:8px 0}.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+input[type=range]{width:min(360px,100%)}footer{text-align:center;color:var(--mut);font-size:.85rem;padding:18px}
+@media print{nav,button,.ctl{display:none}body{background:#fff}section{border:0;break-inside:avoid-page}details{display:block}.ex{display:block!important}}
+</style></head><body>
+<header><h1>NodeMCU (ESP8266) in a Nutshell</h1>
+<p><b>Subject:</b> Embedded Systems &amp; IoT &nbsp;|&nbsp; <b>Unit:</b> Wi-Fi Microcontroller Development Boards &nbsp;|&nbsp; <b>Level:</b> B.E./B.Tech ECE</p>
+<p><b>Learning objectives:</b> understand the NodeMCU architecture and pinout; handle 3.3 V logic, ADC, PWM, UART and I²C calculations; avoid boot/power pitfalls; prepare for GATE-style and core-company interview questions.</p></header>
+<nav><a href="#intro">Introduction</a><a href="#diagram">Diagrams</a><a href="#working">Working</a><a href="#waveforms">Waveforms</a><a href="#equations">Equations</a><a href="#problems">Solved Problems</a><a href="#gate">GATE</a><a href="#interview">Interview</a><a href="#applications">Applications</a><a href="#quiz">Topic Quiz</a><a href="#revision">Revision</a></nav>
+<main>
+
+<section id="intro"><h2>1. Introduction &amp; Learning Objectives</h2>
+<p><b>NodeMCU</b> is an open-source IoT development board built around the <b>ESP8266</b> Wi-Fi SoC (usually the ESP-12E/F module). The name originally referred to its Lua firmware, but today it mostly means the board. It is programmed with the Arduino IDE (C/C++), MicroPython or Lua.</p>
+<p><b>Operating principle:</b> a 32-bit CPU runs your program from external SPI flash; the integrated 2.4 GHz radio and TCP/IP stack let it join a Wi-Fi network (or create one), while GPIO, PWM, ADC, I²C, SPI and UART interface to sensors and actuators. A USB-UART bridge and a 3.3 V regulator make it plug-and-play.</p>
+<p><b>Why it matters:</b> low-cost Wi-Fi connectivity with almost no extra hardware makes it a standard tool for IoT prototyping, home automation and data logging.</p>
+<div class="tw"><table><tr><th>Key specification (typical ESP-12E board)</th><th>Value</th></tr>
+<tr><td>CPU</td><td>32-bit Tensilica L106, 80 MHz (160 MHz possible)</td></tr>
+<tr><td>Wi-Fi</td><td>802.11 b/g/n, 2.4 GHz only; station, soft-AP, or both</td></tr>
+<tr><td>Memory</td><td>~4 MB flash (typical), ~80 KB usable RAM</td></tr>
+<tr><td>Logic level</td><td>3.3 V, <b>not</b> 5 V tolerant</td></tr>
+<tr><td>GPIO</td><td>~11 usable pins with PWM, I²C, SPI, UART</td></tr>
+<tr><td>ADC</td><td>1 channel (A0), 10-bit; chip range 0–1 V, board divider extends to ~0–3.3 V</td></tr>
+<tr><td>USB-serial</td><td>CP2102 or CH340 (programming + serial monitor)</td></tr>
+<tr><td>Power</td><td>Micro-USB 5 V → onboard 3.3 V regulator</td></tr></table></div>
+<p><b>Prerequisites:</b> voltage dividers, Ohm's law, digital logic levels, basic C programming, serial communication basics.</p>
+<p><b>Terminology:</b> <b>SoC</b> – CPU + radio + peripherals on one chip. <b>Station (STA)</b> – joins an existing router. <b>Soft-AP</b> – board hosts its own network. <b>Strapping pin</b> – pin sampled at reset to choose boot mode. <b>PWM</b> – pulse-width modulation. <b>MQTT</b> – lightweight publish/subscribe protocol. <b>OTA</b> – over-the-air firmware update.</p>
+<p><b>Classification of related boards:</b> NodeMCU ESP-12E (ESP8266, v1.0), Wemos D1 mini (ESP8266, compact), NodeMCU-32S / ESP32 DevKit (dual-core, Wi-Fi + Bluetooth).</p></section>
+
+<section id="diagram"><h2>3. Block &amp; Circuit Diagrams</h2>
+<figure><svg viewBox="0 0 740 250" role="img" aria-label="NodeMCU block diagram" font-family="Arial" font-size="12">
+<defs><marker id="ar" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0L8,4L0,8z" fill="#0b3d75"/></marker></defs>
+<g fill="#eaf2fb" stroke="#0b3d75"><rect x="10" y="90" width="90" height="50"/><rect x="130" y="20" width="110" height="50"/><rect x="130" y="150" width="110" height="60"/><rect x="290" y="30" width="200" height="190" fill="#dbe9f9"/><rect x="540" y="60" width="180" height="130"/></g>
+<g fill="#1c2733" text-anchor="middle"><text x="55" y="112">Micro-USB</text><text x="55" y="128">5 V</text>
+<text x="185" y="42">3.3 V LDO</text><text x="185" y="58">(AMS1117)</text>
+<text x="185" y="175">USB-UART</text><text x="185" y="191">CP2102/CH340</text>
+<text x="390" y="52" font-weight="bold">ESP8266 (ESP-12E)</text><text x="390" y="95">CPU L106 80 MHz</text><text x="390" y="120">2.4 GHz Wi-Fi radio</text><text x="390" y="145">SPI Flash 4 MB</text><text x="390" y="170">RAM ~80 KB</text><text x="390" y="195">ADC • PWM • I²C • SPI • UART</text>
+<text x="630" y="85" font-weight="bold">GPIO / A0</text><text x="630" y="110">LEDs, relays</text><text x="630" y="130">Sensors (DHT22, BMP280)</text><text x="630" y="150">Displays, motor drivers</text><text x="630" y="170">(3.3 V logic only)</text></g>
+<g stroke="#0b3d75" stroke-width="2" marker-end="url(#ar)" fill="none"><path d="M100 105 L130 50"/><path d="M100 125 L130 175"/><path d="M240 45 L290 70"/><path d="M240 180 L290 160"/><path d="M490 125 L540 125"/></g>
+<text x="248" y="115" font-size="11" fill="#5a6b7b">3.3 V rail</text></svg>
+<figcaption>Fig. 1 – NodeMCU functional block diagram (illustrative, simplified).</figcaption></figure>
+<figure><svg viewBox="0 0 560 190" font-family="Arial" font-size="12" role="img" aria-label="LED driven from GPIO">
+<g stroke="#1c2733" stroke-width="2" fill="none"><path d="M60 60H150"/><path d="M210 60H300"/><path d="M300 60H340"/><path d="M370 60H400V150H60"/><rect x="150" y="48" width="60" height="24" fill="#fff"/><path d="M340 45V75L365 60Z" fill="#ffe08a"/><path d="M365 45V75"/><path d="M60 150H500"/></g>
+<g fill="#1c2733"><text x="10" y="55">GPIO5 (D1)</text><text x="10" y="70" fill="#5a6b7b">3.3 V out</text><text x="165" y="42">R = 270 Ω</text><text x="335" y="38">LED (Vf≈2 V)</text><text x="405" y="105">I ≈ 4.8 mA</text><text x="500" y="145">GND</text></g>
+<g stroke="#1c2733" stroke-width="2"><path d="M490 150h20M495 155h10M499 160h2"/></g>
+<circle cx="60" cy="60" r="4" fill="#0b6bcb"/></svg>
+<figcaption>Fig. 2 – LED driven from a NodeMCU GPIO through a current-limiting resistor (active-high).</figcaption></figure>
+<div class="tw"><table><tr><th>Component / block</th><th>Function</th></tr>
+<tr><td>Micro-USB</td><td>5 V supply and data link to PC</td></tr><tr><td>3.3 V LDO</td><td>Regulates 5 V to 3.3 V for ESP8266 and I/O</td></tr>
+<tr><td>CP2102/CH340</td><td>Converts USB to UART for flashing and serial monitor</td></tr><tr><td>ESP8266</td><td>CPU, Wi-Fi radio, peripherals</td></tr>
+<tr><td>SPI flash</td><td>Stores firmware and file system</td></tr><tr><td>Resistor (270 Ω)</td><td>Limits LED current to a safe value</td></tr><tr><td>LED</td><td>Visual output indicator</td></tr></table></div>
+<h3>Pinout summary</h3><div class="tw"><table><tr><th>Board label</th><th>GPIO</th><th>Notes</th></tr>
+<tr><td>D0</td><td>16</td><td>No PWM/I²C; used for deep-sleep wake (→ RST)</td></tr><tr><td>D1 / D2</td><td>5 / 4</td><td>Default I²C SCL / SDA</td></tr>
+<tr><td>D3</td><td>0</td><td>Strapping; FLASH button; must be HIGH at boot</td></tr><tr><td>D4</td><td>2</td><td>Strapping; onboard LED, <b>active-low</b>; HIGH at boot</td></tr>
+<tr><td>D5/D6/D7/D8</td><td>14/12/13/15</td><td>SPI SCLK/MISO/MOSI/CS; GPIO15 must be LOW at boot</td></tr>
+<tr><td>TX / RX</td><td>1 / 3</td><td>UART0 (shared with USB serial)</td></tr><tr><td>SD2/SD3 (GPIO9/10)</td><td>9 / 10</td><td>Connected to flash – avoid</td></tr><tr><td>A0</td><td>–</td><td>Single 10-bit ADC input</td></tr></table></div></section>
+
+<section id="working"><h2>4. Working Principle &amp; Detailed Explanation</h2>
+<ol><li><b>Power-up:</b> USB 5 V → LDO → 3.3 V. At reset the chip samples GPIO0, GPIO2, GPIO15 to pick the boot mode.</li>
+<li><b>Normal boot:</b> GPIO15 = LOW, GPIO0 = HIGH, GPIO2 = HIGH → boot from SPI flash. GPIO0 = LOW → UART download (flashing) mode.</li>
+<li><b>Execution:</b> your program runs; the Wi-Fi stack runs in the background, so long blocking code (≈ &gt;3 s without <code>yield()</code>/<code>delay()</code>) triggers the watchdog and a reset.</li>
+<li><b>Connectivity:</b> <code>WiFi.begin(ssid, pass)</code> joins a router (station). Soft-AP mode creates a hotspot; both can run together. Then use <code>ESP8266WebServer</code> or MQTT (<code>PubSubClient</code>).</li>
+<li><b>I/O:</b> GPIO outputs 3.3 V logic; <code>analogWrite()</code> gives software/hardware PWM (default 0–1023); <code>analogRead(A0)</code> returns 0–1023.</li></ol>
+<p><b>DC vs RF behaviour:</b> DC supply must carry Wi-Fi transmit bursts of about 170–300 mA; the weak point is usually the USB cable/supply, not the average current.</p>
+<p><b>Setup flow (Arduino IDE):</b> install ESP8266 board package → select “NodeMCU 1.0 (ESP-12E Module)” → choose COM port → upload.</p>
+<h3>Advantages / limitations</h3>
+<div class="cols"><div><b>Advantages:</b> cheap; built-in Wi-Fi; Arduino ecosystem; OTA updates; deep-sleep support.</div><div><b>Limitations:</b> 3.3 V only; one 10-bit ADC; few usable GPIOs; strapping-pin constraints; limited RAM; no Bluetooth; 2.4 GHz only.</div></div>
+<h3>Common misconceptions</h3><ul><li>“Wi-Fi works at 5 GHz” – no, 2.4 GHz only.</li><li>“GPIOs tolerate 5 V” – no; use dividers/level shifters.</li><li>“A0 reads 0–3.3 V on any ESP8266” – only on boards with the onboard divider; the bare chip reads 0–1 V.</li><li>“All pins are free” – D3, D4, D8 (and D0 for some functions) have constraints.</li></ul></section>
+
+<section id="waveforms"><h2>5. Waveforms &amp; Illustrative Output</h2>
+<p class="key">No Multisim/simulation screenshot was supplied, so all plots here are <b>illustrative</b> (generated in the browser), not measured results.</p>
+<h3>PWM output (1 kHz, 3.3 V) – adjust the duty cycle</h3>
+<div class="ctl"><label>analogWrite value (0–1023): <b id="pv">256</b> <input type="range" id="pwm" min="0" max="1023" value="256"></label></div>
+<svg id="pwmsvg" viewBox="0 0 600 150" aria-label="PWM waveform"></svg>
+<p id="pwmtxt"></p>
+<figcaption>Fig. 3 – Illustrative PWM waveform; duty = value/1023, average voltage = duty × 3.3 V.</figcaption>
+<h3>Wi-Fi supply-current profile (illustrative)</h3>
+<svg viewBox="0 0 600 140" aria-label="Current profile"><g stroke="#ccc"><path d="M40 10V120H590"/></g>
+<polyline fill="none" stroke="#c62828" stroke-width="2" points="40,95 120,95 120,25 135,25 135,95 220,95 220,30 238,30 238,95 330,95 330,22 345,22 345,95 440,95 440,28 456,28 456,95 590,95"/>
+<g font-size="11" font-family="Arial"><text x="4" y="30">~250 mA</text><text x="4" y="98">~70 mA</text><text x="300" y="136">time →</text></g></svg>
+<figcaption>Fig. 4 – Short TX bursts cause supply droop on weak USB sources, leading to brown-out resets (values typical, vary by board and mode).</figcaption>
+<h3>ADC transfer characteristic</h3>
+<div class="ctl"><label>Input voltage at board A0 pin (0–3.2 V): <b id="av">1.60</b> V <input type="range" id="adc" min="0" max="320" value="160"></label></div>
+<p id="adctxt"></p></section>
+
+<section id="equations"><h2>6. Key Equations</h2>
+<h3>(a) Voltage divider (ADC input scaling)</h3><div class="eq">V<sub>pin</sub> = V<sub>in</sub> · R<sub>2</sub> / (R<sub>1</sub> + R<sub>2</sub>)</div>
+<p><i>Derivation:</i> series current I = V<sub>in</sub>/(R<sub>1</sub>+R<sub>2</sub>); V<sub>pin</sub> = I·R<sub>2</sub>. Valid when the load (ADC) draws negligible current. Onboard divider: R<sub>1</sub> = 220 kΩ, R<sub>2</sub> = 100 kΩ → V<sub>pin</sub> = V<sub>in</sub>/3.2, so V<sub>in,max</sub> = 3.2 V for a 1 V chip range.</p>
+<h3>(b) ADC code and resolution</h3><div class="eq">N = floor( V<sub>pin</sub> / V<sub>ref</sub> × 2<sup>10</sup> ), LSB = V<sub>ref</sub> / 1024 ≈ 0.98 mV (V<sub>ref</sub> = 1 V)</div>
+<p>N is the code (0–1023), V<sub>ref</sub> the 1 V full-scale. At the board input the LSB is ≈ 3.2 × 0.977 ≈ 3.1 mV. Physical meaning: smallest resolvable change.</p>
+<h3>(c) PWM</h3><div class="eq">D = N<sub>PWM</sub> / 1023, V<sub>avg</sub> = D · V<sub>DD</sub> (V<sub>DD</sub> = 3.3 V), T = 1/f</div>
+<p>D is the duty cycle (unitless), applicable to resistive/filtered loads. Limits: D = 0 → 0 V, D = 1 → 3.3 V.</p>
+<h3>(d) LED current-limiting resistor</h3><div class="eq">R = (V<sub>GPIO</sub> − V<sub>F</sub>) / I<sub>LED</sub></div><p>Keep GPIO current at or below ~12 mA (absolute maximum per pin).</p>
+<h3>(e) UART timing (8N1 = 10 bits per byte)</h3><div class="eq">t<sub>byte</sub> = 10 / baud, t<sub>N</sub> = 10N / baud</div>
+<h3>(f) I²C timing</h3><div class="eq">t = (9 × bytes) / f<sub>SCL</sub> (ignoring START/STOP; 8 data bits + 1 ACK per byte)</div>
+<h3>(g) Power and battery life</h3><div class="eq">P = V·I, &nbsp; E = P·t, &nbsp; I<sub>avg</sub> = (I<sub>active</sub>·t<sub>a</sub> + I<sub>sleep</sub>·t<sub>s</sub>)/(t<sub>a</sub>+t<sub>s</sub>), &nbsp; Life(h) = Capacity(mAh) / I<sub>avg</sub>(mA)</div>
+<h3>(h) Decibel (for Wi-Fi RSSI)</h3><div class="eq">P(dBm) = 10·log<sub>10</sub>( P / 1 mW )</div></section>
+
+<section id="problems"><h2>7. Solved Numerical Problems</h2>
+<div class="sol"><b>Problem 1 (Easy) – ADC reading.</b> On a NodeMCU (220 kΩ/100 kΩ divider, V<sub>ref</sub> = 1 V), <code>analogRead(A0)</code> returns 512. Find V<sub>in</sub>.<br>
+<b>Required:</b> V<sub>in</sub>. <b>Formula:</b> V<sub>pin</sub> = N/1024 × 1 V; V<sub>in</sub> = V<sub>pin</sub> × (R1+R2)/R2.<br>
+V<sub>pin</sub> = 512/1024 × 1 V = 0.5 V. V<sub>in</sub> = 0.5 × (320 kΩ/100 kΩ) = <b>1.6 V</b>.<br>
+<i>Interpretation:</i> mid-scale code corresponds to half of the 3.2 V full range.</div>
+<div class="sol"><b>Problem 2 (Easy–Moderate) – LED resistor.</b> GPIO = 3.3 V, V<sub>F</sub> = 2.0 V, desired I = 5 mA.<br>
+R = (3.3 − 2.0) V / 5 mA = 1.3 / 0.005 = 260 Ω → choose standard <b>270 Ω</b>.<br>
+Actual I = 1.3 / 270 = <b>4.81 mA</b> (&lt; 12 mA limit). <i>Interpretation:</i> rounding up to the next standard value keeps current safe.</div>
+<div class="sol"><b>Problem 3 (Moderate) – PWM average.</b> <code>analogWrite(pin, 256)</code> at V<sub>DD</sub> = 3.3 V.<br>
+D = 256/1023 ≈ 0.2502 (≈ 25%). V<sub>avg</sub> = 0.2502 × 3.3 ≈ <b>0.83 V</b>.<br><i>Interpretation:</i> an RC filter on the pin would output ≈ 0.83 V DC.</div>
+<div class="sol"><b>Problem 4 (GATE-style, Difficult) – Sleep-mode average current.</b> A node is active at 80 mA for 2 s, then deep-sleeps at 20 µA for 58 s, repeating every 60 s. Find I<sub>avg</sub> and the life with a 2000 mAh battery.<br>
+I<sub>avg</sub> = (80 × 2 + 0.02 × 58)/60 = (160 + 1.16)/60 = <b>2.686 mA</b>. Life = 2000/2.686 ≈ <b>745 h ≈ 31 days</b> (ideal, ignoring regulator/battery losses).<br>
+<i>Shortcut:</i> the active phase dominates, so I<sub>avg</sub> ≈ I<sub>active</sub> × duty (here 80 × 1/30 = 2.667 mA); sleep adds only ~0.02 mA.</div>
+<div class="sol"><b>Problem 5 (Moderate) – UART time.</b> Sending 100 bytes at 115200 baud (8N1): bits = 100 × 10 = 1000; t = 1000/115200 = <b>8.68 ms</b>.</div></section>
+
+<section id="gate"><h2>8. GATE-Style Practice (Original Questions)</h2>
+<p class="key">These are <b>original</b> practice questions written for this page, not actual previous-year GATE questions. Select answers, click <b>Check Answers</b> for scoring and explanations, or <b>Reveal Answers</b> to study.</p>
+<div id="gq"></div></section>
+
+<section id="interview"><h2>9. Core Electronics Interview Preparation</h2>
+<p>Click a question to expand its answer.</p><div id="iv"></div>
+<div class="key"><b>Industry perspective:</b> ESP8266/ESP32-class modules are used in commercial smart plugs, sensors and gateways; engineers care about power-budget margins, brown-out behaviour, RF certification, OTA update reliability and production test coverage rather than just “making it blink”.</div></section>
+
+<section id="applications"><h2>10. Applications &amp; Industry Relevance</h2>
+<div class="tw"><table><tr><th>Application</th><th>Example</th><th>Design considerations</th></tr>
+<tr><td>Home automation</td><td>Wi-Fi relay/smart switch</td><td>Isolate mains from 3.3 V logic; relay-driver transistor; safety compliance</td></tr>
+<tr><td>Environmental sensing</td><td>DHT22/BMP280 → MQTT/cloud dashboard</td><td>Deep sleep, sensor warm-up, ADC noise</td></tr>
+<tr><td>Wi-Fi robots</td><td>Web-controlled car with motor driver</td><td>Motor noise, separate motor supply, common ground</td></tr>
+<tr><td>Data loggers</td><td>Periodic upload of readings</td><td>Reconnect logic, time sync, buffering</td></tr></table></div>
+<p><b>Challenges:</b> brown-outs, Wi-Fi reconnection, strapping-pin conflicts, OTA failure handling, RF placement/antenna keep-out. <b>Roles:</b> embedded firmware engineer, IoT hardware engineer, hardware validation/test engineer, electronics R&amp;D engineer.</p></section>
+
+<section id="quiz"><h2>11. Interactive 10-Question Topic Quiz</h2><div id="tq"></div></section>
+
+<section id="revision"><h2>12. Revision Materials</h2>
+<h3>Formula sheet</h3><div class="tw"><table><tr><th>Quantity</th><th>Formula</th></tr>
+<tr><td>Divider</td><td>V<sub>pin</sub> = V<sub>in</sub>·R2/(R1+R2)</td></tr><tr><td>ADC code</td><td>N = V<sub>pin</sub>/V<sub>ref</sub> × 1024 (V<sub>ref</sub> = 1 V)</td></tr>
+<tr><td>PWM</td><td>V<sub>avg</sub> = (N/1023)·3.3 V</td></tr><tr><td>LED resistor</td><td>R = (V<sub>GPIO</sub> − V<sub>F</sub>)/I</td></tr>
+<tr><td>UART (8N1)</td><td>t = 10N/baud</td></tr><tr><td>I²C</td><td>t = 9·bytes/f<sub>SCL</sub></td></tr><tr><td>Average current</td><td>Σ(I·t)/Σt</td></tr></table></div>
+<h3>Quick revision notes &amp; high-priority points</h3>
+<ul><li>3.3 V logic, not 5 V tolerant; 2.4 GHz only; one 10-bit ADC (chip 0–1 V).</li><li>Normal boot: GPIO15 LOW, GPIO0 HIGH, GPIO2 HIGH. GPIO0 LOW = flash mode.</li><li>Deep-sleep wake: GPIO16 → RST. Onboard LED (GPIO2) is active-low.</li><li>Wi-Fi TX bursts 170–300 mA → good supply + bulk capacitor.</li><li>For more analog channels use 74HC4051 (mux) or ADS1115 (16-bit I²C ADC).</li></ul>
+<h3>Comparison table</h3><div class="tw"><table><tr><th>Feature</th><th>NodeMCU (ESP8266)</th><th>ESP32 DevKit</th><th>Arduino Uno</th></tr>
+<tr><td>CPU</td><td>32-bit, 80/160 MHz</td><td>32-bit dual-core, up to 240 MHz</td><td>8-bit AVR, 16 MHz</td></tr><tr><td>Logic</td><td>3.3 V</td><td>3.3 V</td><td>5 V</td></tr>
+<tr><td>Wireless</td><td>Wi-Fi</td><td>Wi-Fi + Bluetooth</td><td>None</td></tr><tr><td>ADC</td><td>1 × 10-bit</td><td>Multiple, 12-bit</td><td>6 × 10-bit</td></tr></table></div>
+<h3>Troubleshooting</h3><div class="tw"><table><tr><th>Symptom</th><th>Likely cause / fix</th></tr>
+<tr><td>Upload fails</td><td>Wrong port/driver (CP2102/CH340), bad cable, GPIO0 held wrong</td></tr><tr><td>Random resets on Wi-Fi</td><td>Weak USB supply; add 100–470 µF capacitor, better cable</td></tr>
+<tr><td>Won’t boot with peripheral attached</td><td>Load on D3/D4/D8 forcing wrong strapping level</td></tr><tr><td>Deep-sleep never wakes</td><td>GPIO16 not wired to RST</td></tr><tr><td>Sensor garbage / I²C silent</td><td>Missing pull-ups, wrong address, 5 V sensor on 3.3 V pins</td></tr><tr><td>Reset after long loop</td><td>Watchdog – add <code>yield()</code>/<code>delay(0)</code></td></tr></table></div>
+<h3>Memory aids</h3><ul><li><b>“15 low, 0 and 2 high”</b> → boots from flash.</li><li><b>8N1 = 10 bits</b>, not 8, per byte.</li><li><b>I²C = 9 clocks per byte</b> (8 + ACK).</li></ul></section>
+</main>
+<footer>NodeMCU learning page · standalone, works offline · illustrative plots are not measured data · print or Save as PDF from the browser.</footer>
+
+<script>
+// data: [question, options, correct index, explanation, difficulty]
+const GATE=[
+["What is the logic-level voltage of NodeMCU GPIO pins?",["5 V","3.3 V","1.8 V","12 V"],1,"ESP8266 I/O is 3.3 V and not 5 V tolerant.","Easy"],
+["How many distinct output codes does the NodeMCU 10-bit ADC produce?",["256","512","1024","4096"],2,"2<sup>10</sup> = 1024 codes (0–1023).","Easy"],
+["For the bare ESP8266 ADC (V<sub>ref</sub> = 1 V, 10-bit), the LSB size is about:",["0.98 mV","3.22 mV","0.49 mV","9.8 mV"],0,"1 V/1024 ≈ 0.977 mV. 3.22 mV would be 3.3 V/1024, a common trap.","Moderate"],
+["Using the onboard 220 kΩ/100 kΩ divider, V<sub>in</sub> = 2.4 V at A0. The reading is:",["480","640","768","1023"],2,"V<sub>pin</sub> = 2.4×100/320 = 0.75 V → 0.75/1 × 1024 = 768.","Moderate"],
+["Time to send one byte at 115200 baud, 8N1:",["69.4 µs","86.8 µs","78.1 µs","104.2 µs"],1,"10 bits (start + 8 data + stop)/115200 = 86.8 µs. 69.4 µs forgets start/stop bits.","Moderate"],
+["analogWrite value 768 (range 0–1023) at 3.3 V gives average output ≈",["1.65 V","2.20 V","2.48 V","3.30 V"],2,"D = 768/1023 ≈ 0.7507; V = 0.7507 × 3.3 ≈ 2.48 V.","Moderate"],
+["A node draws 80 mA for 2 s and 20 µA for 58 s each cycle. Average current is:",["2.69 mA","2.67 mA","40 mA","1.34 mA"],0,"(80×2 + 0.02×58)/60 = 161.16/60 = 2.686 mA. 2.67 mA ignores the sleep current; 1.34 mA divides by 120 s wrongly.","Difficult"],
+["Which reset-time pin levels select normal boot from flash?",["GPIO0 LOW, GPIO2 HIGH, GPIO15 LOW","GPIO0 HIGH, GPIO2 HIGH, GPIO15 HIGH","GPIO0 HIGH, GPIO2 LOW, GPIO15 LOW","GPIO0 HIGH, GPIO2 HIGH, GPIO15 LOW"],3,"Flash boot needs GPIO15 LOW, GPIO0 HIGH, GPIO2 HIGH. GPIO0 LOW enters UART download mode.","Difficult"],
+["I²C at 100 kHz: one address byte and two data bytes (ignore START/STOP). Time ≈",["240 µs","270 µs","300 µs","90 µs"],1,"3 bytes × 9 clocks = 27 clocks; 27/100 kHz = 270 µs.","Moderate"],
+["To wake the ESP8266 from deep sleep using its timer, connect:",["GPIO0 to GND","GPIO16 to RST","GPIO2 to VCC","A0 to RST"],1,"The RTC wake pulse on GPIO16 must reach RST.","Easy"]];
+const TOPIC=[
+["NodeMCU is built around which SoC?",["ESP32","ESP8266","ATmega328P","STM32F103"],1,"NodeMCU boards use the ESP8266 (ESP-12E/F module)."],
+["Which Wi-Fi band does the ESP8266 support?",["2.4 GHz only","5 GHz only","Both 2.4 and 5 GHz","6 GHz"],0,"The ESP8266 is 2.4 GHz only."],
+["Which mode lets NodeMCU create its own network?",["Station","Soft-AP","Deep sleep","Monitor"],1,"Soft-AP makes the board a hotspot."],
+["How many ADC channels does the ESP8266 provide?",["1","2","6","8"],0,"A single 10-bit ADC pin (A0)."],
+["The onboard LED on GPIO2 turns ON when you write:",["HIGH","LOW","PWM 0 only","It cannot be controlled"],1,"It is wired active-low."],
+["Why can a weak USB supply cause random resets?",["Flash wear","Wi-Fi TX current bursts","ADC overflow","UART baud error"],1,"TX bursts of 170–300 mA droop the supply (brown-out)."],
+["Which lightweight publish/subscribe protocol is common with NodeMCU?",["FTP","SMTP","MQTT","SSH"],2,"MQTT, typically via the PubSubClient library."],
+["What must you add to read a 5 V logic signal safely?",["Nothing","A level shifter or divider","A larger sketch","A 5 V regulator on GPIO"],1,"GPIOs are not 5 V tolerant."],
+["Which call starts a Wi-Fi connection as a station?",["WiFi.begin(ssid, pass)","WiFi.softAP()","analogRead(A0)","Serial.begin()"],0,"WiFi.begin() joins a router."],
+["Which board option is selected in the Arduino IDE for most NodeMCU boards?",["Arduino Uno","NodeMCU 1.0 (ESP-12E Module)","ESP32 Dev Module","Generic AVR"],1,"Choose NodeMCU 1.0 (ESP-12E Module)."]];
+const IV=[
+["Why aren't NodeMCU GPIOs 5 V tolerant, and what do you do?","The ESP8266 I/O runs at 3.3 V; 5 V exceeds the pad ratings and stresses the protection diodes. Use a resistor divider (input only) or a level shifter (e.g. BSS138 for I²C). <i>Follow-up:</i> can a 5 V sensor output be read directly? No – divide it down first."],
+["The board won't boot when a relay is attached to D8 (or a sensor to D3). Why?","GPIO15 (D8), GPIO0 (D3) and GPIO2 (D4) are strapping pins sampled at reset: GPIO15 must be LOW, GPIO0 HIGH, GPIO2 HIGH. The attached load pulled the wrong level. Move the load or add suitable pull-up/pull-down resistors."],
+["It resets randomly only when Wi-Fi connects. How do you debug?","Suspect supply droop from TX bursts (170–300 mA). Try another USB cable/supply, measure 3.3 V with a scope, add 100–470 µF near the module. Also check the watchdog (blocking loops). <i>Follow-up:</i> what resets after ~3 s of blocking code? The software watchdog."],
+["How do you measure a 4.2 V Li-ion cell with A0 on a NodeMCU?","The onboard divider limits input to 3.2 V. Add a series resistor R<sub>x</sub>: V<sub>pin-side</sub> = 4.2×320/(R<sub>x</sub>+320) = 3.2 → R<sub>x</sub> ≈ 100 kΩ. Calibrate in firmware and average samples (tolerances matter)."],
+["Design a battery-powered sensor node. What matters?","Use deep sleep (GPIO16→RST), wake, read, transmit, sleep; compute I<sub>avg</sub> = Σ(I·t)/Σt. Use a low-quiescent regulator and, ideally, a bare module, since the dev board's USB-UART chip and LDO waste current. Minimise Wi-Fi connect time (static IP, stored channel/BSSID)."],
+["An I²C sensor doesn't respond. Steps?","Check 3.3 V supply, SDA/SCL on D2/D1, common ground, 4.7 kΩ pull-ups, and run an I²C scanner for the address. Verify the sensor isn't a 5 V part and look at the bus with a logic analyzer."],
+["Station vs Soft-AP vs both?","Station joins an existing router; Soft-AP creates a hotspot (e.g. for provisioning); both mode runs them together, with the radio sharing the same channel."],
+["MQTT or HTTP for sensor telemetry?","MQTT: lightweight, persistent connection, publish/subscribe, QoS levels – good for many devices. HTTP: simple request/response, more header overhead per message, easier to integrate with REST."],
+["Why is the ESP8266 ADC reading noisy and what helps?","Wi-Fi activity and supply noise couple into the high-impedance input. Average multiple samples, add decoupling, keep source impedance low, and use an external ADC (ADS1115, 16-bit) when precision is required."],
+["How would you validate NodeMCU-based units in production?","Flash a test firmware; check the 3.3 V rail, flash ID, current in active/sleep modes, Wi-Fi RSSI/throughput against a golden unit, GPIO loopback, and ADC accuracy at known inputs. Log results per serial number. Also confirm OTA update and rollback work."]];
+function quiz(id,data,gate){
+ const el=document.getElementById(id);
+ el.innerHTML=data.map((q,i)=>`<div class="q" id="${id}q${i}"><p><b>Q${i+1}.</b> ${q[0]}${q[4]?` <span class="tag ${q[4]}">${q[4]}</span>`:''}</p>`+
+  q[1].map((o,j)=>`<label><input type="radio" name="${id}${i}" value="${j}"> ${'ABCD'[j]}. ${o}</label>`).join('')+`<div class="ex"></div></div>`).join('')+
+  `<button id="${id}c">Check Answers</button>${gate?`<button class="s" id="${id}r">Reveal Answers</button>`:''}<button class="s" id="${id}x">Reset Quiz</button><div class="res" id="${id}s"></div>`;
+ const show=(i,state)=>{const q=data[i],box=document.getElementById(id+'q'+i);box.className='q show '+state;
+  box.querySelector('.ex').innerHTML=(state==='un'?'<b>Unanswered.</b> ':state==='correct'?'<b style="color:#1a7f37">Correct.</b> ':'<b style="color:#c62828">Incorrect.</b> ')+'Answer: <b>'+'ABCD'[q[2]]+'</b>. '+q[3];};
+ document.getElementById(id+'c').onclick=()=>{let sc=0,un=0;
+  data.forEach((q,i)=>{const s=el.querySelector(`input[name="${id}${i}"]:checked`);
+   if(!s){un++;show(i,'un');}else if(+s.value===q[2]){sc++;show(i,'correct');}else show(i,'wrong');});
+  document.getElementById(id+'s').textContent=`Score: ${sc} / ${data.length} (${(sc/data.length*100).toFixed(0)}%) — Incorrect: ${data.length-sc-un}, Unanswered: ${un}`;};
+ if(gate)document.getElementById(id+'r').onclick=()=>data.forEach((q,i)=>{const b=document.getElementById(id+'q'+i);b.className='q show';b.querySelector('.ex').innerHTML='Answer: <b>'+'ABCD'[q[2]]+'</b>. '+q[3];});
+ document.getElementById(id+'x').onclick=()=>{el.querySelectorAll('input').forEach(r=>r.checked=false);
+  data.forEach((q,i)=>{const b=document.getElementById(id+'q'+i);b.className='q';b.querySelector('.ex').innerHTML='';});document.getElementById(id+'s').textContent='';};
+}
+quiz('gq',GATE,true);quiz('tq',TOPIC,false);
+document.getElementById('iv').innerHTML=IV.map((x,i)=>`<details><summary>Q${i+1}. ${x[0]}</summary><p>${x[1]}</p></details>`).join('');
+// PWM illustration
+const pw=document.getElementById('pwm');
+function drawPwm(){const n=+pw.value,d=n/1023,W=600,x0=30,T=140,hi=30,lo=110;let p=`${x0},${lo}`;
+ for(let k=0;k<4;k++){const s=x0+k*T/1*1;const a=s,b=s+T*d,c=s+T;
+  if(d>0){p+=` ${a},${hi} ${b},${hi} ${b},${lo}`;}p+=` ${c},${lo}`;}
+ document.getElementById('pwmsvg').innerHTML=`<polyline fill="none" stroke="#0b6bcb" stroke-width="2" points="${p}"/><text x="2" y="${hi+4}" font-size="11">3.3V</text><text x="2" y="${lo}" font-size="11">0V</text><text x="${x0}" y="140" font-size="11">T = 1 ms (1 kHz) — 4 periods shown</text>`;
+ document.getElementById('pv').textContent=n;
+ document.getElementById('pwmtxt').textContent=`Duty = ${(d*100).toFixed(1)}%, average voltage ≈ ${(d*3.3).toFixed(2)} V`;}
+pw.oninput=drawPwm;drawPwm();
+const ad=document.getElementById('adc');
+function adcUpd(){const v=ad.value/100,vp=v*100/320,n=Math.min(1023,Math.floor(vp/1*1024));
+ document.getElementById('av').textContent=v.toFixed(2);
+ document.getElementById('adctxt').textContent=`V at chip pin = ${vp.toFixed(3)} V → analogRead ≈ ${n} (full scale 1023 at ≈3.2 V; one count ≈ 3.1 mV at the board input)`;}
+ad.oninput=adcUpd;adcUpd();
+</script></body></html>
